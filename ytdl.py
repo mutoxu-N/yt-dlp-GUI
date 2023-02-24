@@ -48,6 +48,7 @@ def start():
     # exclusive processing
     global processingFlag
     if processingFlag:
+        create_log('Another process is running.')
         return
     else:
         processingFlag = True
@@ -68,6 +69,7 @@ def start():
     else:
         download_list = [[urlEntry.get(), outputFormat.get()]]
 
+    process_history = ""
     for i in range(len(download_list)):
         print("aaa", i)
         # text format
@@ -82,6 +84,7 @@ def start():
             if result:
                 # success
                 create_log(f"O {download_list[i][0]} / {msgs[0]} >> DOWNLOAD SUCCESS")
+                process_history += f"O {download_list[i][0]} / {msgs[0]} >> DOWNLOAD SUCCESS ({i+1}/{len(download_list)})\n"
                 success_flag = True
                 break
             else:
@@ -89,10 +92,15 @@ def start():
                 error_msgs = msgs
                 create_log(f"X {download_list[i][0]} / {msgs[0]} >> DOWNLOAD FAILED (attempt: {j+1})")
 
+        if not success_flag:
+            process_history += f"X {download_list[i][0]} / {error_msgs[0]} >> DOWNLOAD FAILED ({i+1}/{len(download_list)})\n"
+    create_log(process_history)
+
     # enable buttons
-    urlEntry["state"], outputEntry["state"], rButton1["state"], rButton2["state"], confirmButton["state"] = [
-                                                                                                                "active"] * 5
+    urlEntry["state"], outputEntry["state"], rButton1["state"], rButton2["state"], confirmButton["state"] = ["active"] * 5
     processingFlag = False
+
+    # dialog
 
 
 def download(url, f, st=0, ed=-1, cnt=-1):
@@ -109,9 +117,8 @@ def download(url, f, st=0, ed=-1, cnt=-1):
         if cnt < 0:
             text = ">>  META DATA  <<"
         else:
-            text = f">>  META DATA ({cnt}本目)  <<"
-        create_log(f"{text}\nURL: {webpage_url}\ntitle: {title}\nduration: {duration} sec\nthumbnail: {thumb_url}\n" + \
-                   "-"*100)
+            text = f">>  META DATA (No.{cnt})  <<"
+        create_log(f"{text}\nURL: {webpage_url}\ntitle: {title}\nduration: {duration} sec\nthumbnail: {thumb_url}\n")
 
     # download mp3
     if f == "mp3":
@@ -231,7 +238,7 @@ def create_log(msgs, is_display=True):
                 f"{str(math.floor(datetime.datetime.now().microsecond/10000)).zfill(2)}]"
 
     # disassemble text
-    msgs = msgs.split('\n') + ['']*2
+    msgs = msgs.split('\n') + ['']
 
     global consoleText, consoleLogText
     # for log file
