@@ -34,6 +34,7 @@ outputFormat: Optional[tk.StringVar] = None
 selectButton: Optional[tk.Button] = None
 rButton1: Optional[tk.Radiobutton] = None
 rButton2: Optional[tk.Radiobutton] = None
+rButton3: Optional[tk.Radiobutton] = None
 stEntry: Optional[tk.Entry] = None
 edEntry: Optional[tk.Entry] = None
 consoleText: Optional[tk.Text] = None
@@ -72,9 +73,9 @@ def start():
         processingFlag = True
 
     # disable buttons
-    global confirmButton, rButton1, rButton2, urlEntry, outputEntry, stEntry, edEntry
-    urlEntry["state"], outputEntry["state"], rButton1["state"], rButton2["state"], confirmButton["state"], \
-        stEntry["state"], edEntry["state"], selectButton["state"] = ["disable"] * 8
+    global confirmButton, rButton1, rButton2, rButton3, urlEntry, outputEntry, stEntry, edEntry
+    urlEntry["state"], outputEntry["state"], rButton1["state"], rButton2["state"], rButton3["state"], \
+        confirmButton["state"], stEntry["state"], edEntry["state"], selectButton["state"] = ["disable"] * 9
 
     # load download URLs
     global outputFormat
@@ -117,6 +118,8 @@ def start():
             # check format
             if "mp4" in download_list[i][1]:
                 download_list[i][1] = "mp4"
+            elif "webm" in download_list[i][1]:
+                download_list[i][1] = "webm"
             else:
                 download_list[i][1] = "mp3"
 
@@ -147,8 +150,8 @@ def start():
     create_log(process_history)
 
     # enable buttons
-    urlEntry["state"], outputEntry["state"], rButton1["state"], rButton2["state"], confirmButton["state"], \
-        stEntry["state"], edEntry["state"], selectButton["state"] = ["normal"] * 8
+    urlEntry["state"], outputEntry["state"], rButton1["state"], rButton2["state"], rButton3["state"], \
+        confirmButton["state"], stEntry["state"], edEntry["state"], selectButton["state"] = ["normal"] * 9
     stEntry.delete(0, tk.END)
     edEntry.delete(0, tk.END)
     processingFlag = False
@@ -253,7 +256,7 @@ def download(url, f, st=0, ed=-1, cnt=-1):
         if os.path.exists(f"{CURRENT_DIRECTORY}\\a.webp"): os.remove(f"{CURRENT_DIRECTORY}\\a.webp")
         if os.path.exists(f"{CURRENT_DIRECTORY}\\t.jpg"): os.remove(f"{CURRENT_DIRECTORY}\\t.jpg")
 
-    # download mp4
+    # download mp4 or webm
     else:
         opts['format'] = 'webm/bestvideo/best'
         opts['outtmpl'] = f"{CURRENT_DIRECTORY}\\v.webm"
@@ -265,28 +268,30 @@ def download(url, f, st=0, ed=-1, cnt=-1):
                 if not os.path.exists(f"{CURRENT_DIRECTORY}\\v.webm"):
                     return False, ["Download failed!"]
 
-        # convert to mp4 from webm
-        stream = ffmpeg.input(f"{CURRENT_DIRECTORY}\\v.webm")
-        ffmpeg.run(ffmpeg.output(stream, f"{CURRENT_DIRECTORY}\\v.mp4"), overwrite_output=True)
+        if f == "mp4":
+            # convert to mp4 from webm
+            stream = ffmpeg.input(f"{CURRENT_DIRECTORY}\\v.webm")
+            ffmpeg.run(ffmpeg.output(stream, f"{CURRENT_DIRECTORY}\\v.mp4"), overwrite_output=True)
 
         # file rename
         if is_full:
-            output_file_name = re.sub(r"[\\/:*?'<>|]+\n", '', title) + ".mp4"
+            output_file_name = re.sub(r"[\\/:*?'<>|]+\n", '', title) + f".{f}"
         else:
             output_file_name = re.sub(r"[\\/:*?'<>|]+\n", '', title) + \
-                               f"{convert_to_timestamp(st, sp='.')}-{convert_to_timestamp(ed, sp='.')}" + ".mp4"
+                               f"{convert_to_timestamp(st, sp='.')}-{convert_to_timestamp(ed, sp='.')}" + f".{f}"
 
         # remove old file
-        if os.path.exists(f"{CURRENT_DIRECTORY}\\{output_file_name}") and output_file_name != "v.mp4":
+        if os.path.exists(f"{CURRENT_DIRECTORY}\\{output_file_name}") and output_file_name != f"v.{f}":
             os.remove(f"{CURRENT_DIRECTORY}\\{output_file_name}")
 
         # rename if needed
-        if output_file_name != "v.mp4":
-            os.rename(f"{CURRENT_DIRECTORY}\\v.mp4",
+        if output_file_name != f"v.{f}":
+            os.rename(f"{CURRENT_DIRECTORY}\\v.{f}",
                       f"{CURRENT_DIRECTORY}\\{output_file_name}")
 
-        # delete tmp file
-        if os.path.exists(f"{CURRENT_DIRECTORY}\\a.m4a"): os.remove(f"{CURRENT_DIRECTORY}\\v.webm")
+        # delete tmp file when .mp4
+        if os.path.exists(f"{CURRENT_DIRECTORY}\\v.webm") and output_file_name != "v.webm":
+            os.remove(f"{CURRENT_DIRECTORY}\\v.webm")
 
     return True, [title]
 
@@ -419,11 +424,13 @@ def main():
     bottom_frame = ttk.Frame(root, padding=5, style="YTDL.TFrame")
     bottom_frame.pack()
     ttk.Label(bottom_frame, text='Format: ', font=normal_text_font, style='YTDL.TLabel').pack(side=tk.LEFT)
-    global rButton1, rButton2
+    global rButton1, rButton2, rButton3
     rButton1 = tk.Radiobutton(bottom_frame, text="mp3", variable=outputFormat, value="mp3")
     rButton1.pack(side=tk.LEFT)
     rButton2 = tk.Radiobutton(bottom_frame, text="mp4", variable=outputFormat, value="mp4")
     rButton2.pack(side=tk.LEFT)
+    rButton3 = tk.Radiobutton(bottom_frame, text="webm", variable=outputFormat, value="webm")
+    rButton3.pack(side=tk.LEFT)
 
     # duration
     global stEntry, edEntry
