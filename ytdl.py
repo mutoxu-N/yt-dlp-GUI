@@ -145,8 +145,6 @@ def start():
         if not success_flag:
             process_history += f"X {download_list[i][0]} / {error_msgs[0]} >> DOWNLOAD FAILED ({i + 1}/{len(download_list)})\n"
 
-        break  # TODO remove
-
     create_log(process_history)
 
     # enable buttons
@@ -182,7 +180,11 @@ def download(url, f, st=0, ed=-1, cnt=-1):
         # calc clip duration
         if st < ed:
             if duration < ed: ed = duration
-            opts['download_ranges'] = lambda _, __: [{'start_time': st, 'end_time': ed}]  # TODO this is not correct.
+            # TODO this may not be correct.
+            # `download_ranges` does not work correctly.
+            # downloaded audio and video are different range.
+            # This makes gap between audio and video.
+            opts['download_ranges'] = lambda _, __: [{'start_time': st, 'end_time': ed}]
             is_full = False
 
             text = f"{text}\nURL: {webpage_url}\ntitle: {title}\nlength: {duration} sec\n" \
@@ -199,24 +201,31 @@ def download(url, f, st=0, ed=-1, cnt=-1):
     stEntry.delete(0, tk.END)
     stEntry.insert(0, convert_to_timestamp(st))
     edEntry.delete(0, tk.END)
-    edEntry.insert(0, convert_to_timestamp(ed))
+    if ed < 0:
+        edEntry.insert(0, convert_to_timestamp(duration))
+    else:
+        edEntry.insert(0, convert_to_timestamp(ed))
     stEntry["state"], edEntry["state"] = ["disable"] * 2
 
-    # download mp3
+    # download audio
+    opts['format'] = 'm4a/bestaudio/best'
+    opts['outtmpl'] = f"{CURRENT_DIRECTORY}\\a.m4a"
+    opts['overwrite'] = "true"
     if f == "mp3":
-        opts['format'] = 'm4a/bestaudio/best'
-        opts['outtmpl'] = f"{CURRENT_DIRECTORY}\\a.m4a"
         opts['writethumbnail'] = "true"
 
-        with YoutubeDL(opts) as ydl:
-            try:
-                ydl.download(url)
-            except DownloadError:
-                if not (os.path.exists(f"{CURRENT_DIRECTORY}\\a.m4a") and
-                        os.path.exists(f"{CURRENT_DIRECTORY}\\a.webp")):
-                    return False, ["Download failed!"]
+    with YoutubeDL(opts) as ydl:
+        try:
+            ydl.download(url)
+        except DownloadError:
+            if not os.path.exists(f"{CURRENT_DIRECTORY}\\a.m4a"):
+                return False, ["Download failed!"]
 
-        # convert to jpg from webp
+            elif f == "mp3" and not os.path.exists(f"{CURRENT_DIRECTORY}\\a.webp"):
+                return False, ["Download failed!"]
+
+    # convert to jpg from webp
+    if f == "mp3":
         Image.open(f"{CURRENT_DIRECTORY}\\a.webp").convert('RGB').save(f"{CURRENT_DIRECTORY}\\t.jpg", 'jpeg')
 
         # convert to mp3 from m4a
@@ -257,9 +266,10 @@ def download(url, f, st=0, ed=-1, cnt=-1):
         if os.path.exists(f"{CURRENT_DIRECTORY}\\t.jpg"): os.remove(f"{CURRENT_DIRECTORY}\\t.jpg")
 
     # download mp4 or webm
-    else:
+    if f != "mp3":
         opts['format'] = 'webm/bestvideo/best'
         opts['outtmpl'] = f"{CURRENT_DIRECTORY}\\v.webm"
+        opts['overwrite'] = "true"
 
         with YoutubeDL(opts) as ydl:
             try:
@@ -269,9 +279,10 @@ def download(url, f, st=0, ed=-1, cnt=-1):
                     return False, ["Download failed!"]
 
         if f == "mp4":
-            # convert to mp4 from webm
-            stream = ffmpeg.input(f"{CURRENT_DIRECTORY}\\v.webm")
-            ffmpeg.run(ffmpeg.output(stream, f"{CURRENT_DIRECTORY}\\v.mp4"), overwrite_output=True)
+            # convert to mp4 from webm and combine audio
+            ffmpeg.output(ffmpeg.input(f"{CURRENT_DIRECTORY}\\v.webm"), f"{CURRENT_DIRECTORY}\\v.mp4") \
+                .global_args('-i', f"{CURRENT_DIRECTORY}\\a.m4a").global_args('-vcodec', 'copy')\
+                .global_args('-map', '0:v').global_args('-map', '1:a').run(overwrite_output=True)
 
         # file rename
         if is_full:
@@ -281,15 +292,20 @@ def download(url, f, st=0, ed=-1, cnt=-1):
                                f"{convert_to_timestamp(st, sp='.')}-{convert_to_timestamp(ed, sp='.')}" + f".{f}"
 
         # remove old file
-        if os.path.exists(f"{CURRENT_DIRECTORY}\\{output_file_name}") and output_file_name != f"v.{f}":
+        if os.path.exists(f"{CURRENT_DIRECTORY}\\{output_file_name}") and output_file_name != f"c.{f}":
             os.remove(f"{CURRENT_DIRECTORY}\\{output_file_name}")
 
         # rename if needed
         if output_file_name != f"v.{f}":
             os.rename(f"{CURRENT_DIRECTORY}\\v.{f}",
                       f"{CURRENT_DIRECTORY}\\{output_file_name}")
+        if output_file_name != f"a.m4a" and f == "webm":
+            os.rename(f"{CURRENT_DIRECTORY}\\a.m4a",
+                      f"{CURRENT_DIRECTORY}\\{output_file_name[:-4]}.m4a")
 
-        # delete tmp file when .mp4
+        # delete tmp file
+        if os.path.exists(f"{CURRENT_DIRECTORY}\\a.m4a"): os.remove(f"{CURRENT_DIRECTORY}\\a.m4a")
+        if os.path.exists(f"{CURRENT_DIRECTORY}\\v.{f}"): os.remove(f"{CURRENT_DIRECTORY}\\v.{f}")
         if os.path.exists(f"{CURRENT_DIRECTORY}\\v.webm") and output_file_name != "v.webm":
             os.remove(f"{CURRENT_DIRECTORY}\\v.webm")
 
@@ -429,7 +445,7 @@ def main():
     rButton1.pack(side=tk.LEFT)
     rButton2 = tk.Radiobutton(bottom_frame, text="mp4", variable=outputFormat, value="mp4")
     rButton2.pack(side=tk.LEFT)
-    rButton3 = tk.Radiobutton(bottom_frame, text="webm", variable=outputFormat, value="webm")
+    rButton3 = tk.Radiobutton(bottom_frame, text="webm&m4a", variable=outputFormat, value="webm")
     rButton3.pack(side=tk.LEFT)
 
     # duration
