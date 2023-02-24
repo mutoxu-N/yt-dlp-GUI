@@ -6,7 +6,7 @@ import tkinter
 import tkinter as tk
 import tkinter.filedialog as tkFDialog
 import tkinter.font as tkFont
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
 import ffmpeg
 import re
@@ -64,17 +64,26 @@ def start():
         # load download_list.txt
         if os.path.isfile(f"{outputEntry.get()}\\download_list.txt"):
             with open(f"{outputEntry.get()}\\download_list.txt", encoding="UTF-8", mode="r") as f:
-                download_list = list(map(lambda a: a.split(','), f.readlines()))
+                lines = list(map(lambda a: a.split(','), f.readlines()))
+                for l in lines:
+                    if len(l) == 1: download_list.append([l[0], "mp3"])
+                    elif len(l) == 2: download_list.append(l)
+                    elif len(l) == 4: pass
+                    else: download_list.append([None, ','.join(l)])
 
     else:
         download_list = [[urlEntry.get(), outputFormat.get()]]
 
     process_history = ""
     for i in range(len(download_list)):
-        print("aaa", i)
+        if not download_list[i][0]:
+            create_log(f"setting({download_list[i][1]}) is invalid.")
+            process_history += f"X setting({download_list[i][1]}) is invalid."
+            continue
+
         # text format
-        if "mp3" in download_list[i][1]: download_list[i][1] = "mp3"
-        else: download_list[i][1] = "mp4"
+        if "mp4" in download_list[i][1]: download_list[i][1] = "mp4"
+        else: download_list[i][1] = "mp3"
         outputFormat.set(download_list[i][1])
 
         success_flag = False
@@ -101,6 +110,7 @@ def start():
     processingFlag = False
 
     # dialog
+    messagebox.showinfo(APP_NAME, "Downloads finished!!")
 
 
 def download(url, f, st=0, ed=-1, cnt=-1):
