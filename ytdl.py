@@ -255,31 +255,38 @@ def download(url, f, st=0, ed=-1, cnt=-1):
 
     # download mp4
     else:
-        opts['format'] = 'bestvideo/best'
-        opts['outtmpl'] = f"{CURRENT_DIRECTORY}\\v.mp4"
+        opts['format'] = 'webm/bestvideo/best'
+        opts['outtmpl'] = f"{CURRENT_DIRECTORY}\\v.webm"
 
         with YoutubeDL(opts) as ydl:
             try:
                 ydl.download(url)
             except DownloadError:
-                if not os.path.exists(f"{CURRENT_DIRECTORY}\\v.mp4"):
+                if not os.path.exists(f"{CURRENT_DIRECTORY}\\v.webm"):
                     return False, ["Download failed!"]
 
-            # file rename
-            if is_full:
-                output_file_name = re.sub(r"[\\/:*?'<>|]+\n", '', title) + ".mp4"
-            else:
-                output_file_name = re.sub(r"[\\/:*?'<>|]+\n", '', title) + \
-                                   f"{convert_to_timestamp(st, sp='.')}-{convert_to_timestamp(ed, sp='.')}" + ".mp4"
+        # convert to mp4 from webm
+        stream = ffmpeg.input(f"{CURRENT_DIRECTORY}\\v.webm")
+        ffmpeg.run(ffmpeg.output(stream, f"{CURRENT_DIRECTORY}\\v.mp4"), overwrite_output=True)
 
-            if os.path.exists(f"{CURRENT_DIRECTORY}\\{output_file_name}") and output_file_name != "v.mp4":
-                # remove old file
-                os.remove(f"{CURRENT_DIRECTORY}\\{output_file_name}")
+        # file rename
+        if is_full:
+            output_file_name = re.sub(r"[\\/:*?'<>|]+\n", '', title) + ".mp4"
+        else:
+            output_file_name = re.sub(r"[\\/:*?'<>|]+\n", '', title) + \
+                               f"{convert_to_timestamp(st, sp='.')}-{convert_to_timestamp(ed, sp='.')}" + ".mp4"
 
-            if output_file_name != "v.mp4":
-                # rename if needed
-                os.rename(f"{CURRENT_DIRECTORY}\\v.mp4",
-                          f"{CURRENT_DIRECTORY}\\{output_file_name}")
+        # remove old file
+        if os.path.exists(f"{CURRENT_DIRECTORY}\\{output_file_name}") and output_file_name != "v.mp4":
+            os.remove(f"{CURRENT_DIRECTORY}\\{output_file_name}")
+
+        # rename if needed
+        if output_file_name != "v.mp4":
+            os.rename(f"{CURRENT_DIRECTORY}\\v.mp4",
+                      f"{CURRENT_DIRECTORY}\\{output_file_name}")
+
+        # delete tmp file
+        if os.path.exists(f"{CURRENT_DIRECTORY}\\a.m4a"): os.remove(f"{CURRENT_DIRECTORY}\\v.webm")
 
     return True, [title]
 
