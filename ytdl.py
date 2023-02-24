@@ -31,8 +31,11 @@ consoleLogText = ''
 urlEntry: Optional[tk.Entry] = None
 outputEntry: Optional[tk.Entry] = None
 outputFormat: Optional[tk.StringVar] = None
+selectButton: Optional[tk.Button] = None
 rButton1: Optional[tk.Radiobutton] = None
 rButton2: Optional[tk.Radiobutton] = None
+stEntry: Optional[tk.Entry] = None
+edEntry: Optional[tk.Entry] = None
 consoleText: Optional[tk.Text] = None
 confirmButton: Optional[tk.Button] = None
 
@@ -41,6 +44,21 @@ confirmButton: Optional[tk.Button] = None
 def subprocess():
     thread = threading.Thread(target=start)
     thread.start()
+
+
+# calc seconds from 000:00:00
+def convert_to_seconds(string):
+    nums = list(map(lambda a: int(a or 0), string.split(':')))[::-1]
+    t, i = 0, 0
+    for num in nums:
+        t += num * (60 ** i)
+        i += 1
+    return t
+
+
+# calc seconds from 000:00:00
+def convert_to_timestamp(sec, sp=':'):
+    return f"{sec // 3600}{sp}{sec % 3600 // 60}{sp}{sec % 60}"
 
 
 # prepare download
@@ -54,26 +72,37 @@ def start():
         processingFlag = True
 
     # disable buttons
-    global confirmButton, rButton1, rButton2, urlEntry, outputEntry
-    urlEntry["state"], outputEntry["state"], rButton1["state"], rButton2["state"], confirmButton["state"] = ["disable"] * 5
+    global confirmButton, rButton1, rButton2, urlEntry, outputEntry, stEntry, edEntry
+    urlEntry["state"], outputEntry["state"], rButton1["state"], rButton2["state"], confirmButton["state"], \
+        stEntry["state"], edEntry["state"], selectButton["state"] = ["disable"] * 8
 
     # load download URLs
     global outputFormat
-    download_list = []  # list of [url, format(mp3/mp4), start, end]
+    download_list = []  # list of [url, format(mp3/mp4), start, end] or [url, format]
     if urlEntry.get() == "":
         # load download_list.txt
         if os.path.isfile(f"{outputEntry.get()}\\download_list.txt"):
             with open(f"{outputEntry.get()}\\download_list.txt", encoding="UTF-8", mode="r") as f:
                 lines = list(map(lambda a: a.split(','), f.readlines()))
                 for l in lines:
-                    if len(l) == 1: download_list.append([l[0], "mp3"])
-                    elif len(l) == 2: download_list.append(l)
-                    elif len(l) == 4: pass
-                    else: download_list.append([None, ','.join(l)])
+                    if len(l) == 1:
+                        download_list.append([l[0], "mp3"])
+                    elif len(l) == 2:
+                        download_list.append(l)
+                    elif len(l) == 4:
+                        download_list.append([l[0], l[1], convert_to_seconds(l[2]), convert_to_seconds(l[3])])
+                    else:
+                        download_list.append([None, ','.join(l)])
 
     else:
-        download_list = [[urlEntry.get(), outputFormat.get()]]
+        # clac seconds
+        st, ed = convert_to_seconds(stEntry.get()), convert_to_seconds(edEntry.get())
+        if st == 0 and ed == 0:
+            download_list.append([urlEntry.get(), outputFormat.get()])
+        else:
+            download_list.append([urlEntry.get(), outputFormat.get(), st, ed])
 
+    # run download 1 by 1.
     process_history = ""
     for i in range(len(download_list)):
         if not download_list[i][0]:
@@ -81,32 +110,47 @@ def start():
             process_history += f"X setting({download_list[i][1]}) is invalid."
             continue
 
-        # text format
-        if "mp4" in download_list[i][1]: download_list[i][1] = "mp4"
-        else: download_list[i][1] = "mp3"
-        outputFormat.set(download_list[i][1])
-
+        # 5 attempts
         success_flag = False
         error_msgs = None
         for j in range(5):
-            result, msgs = download(download_list[i][0], download_list[i][1], cnt=i+1)
+            # check format
+            if "mp4" in download_list[i][1]:
+                download_list[i][1] = "mp4"
+            else:
+                download_list[i][1] = "mp3"
+
+            # run download()
+            if len(download_list[i]) == 4:
+                result, msgs = download(download_list[i][0], download_list[i][1], cnt=i + 1,
+                                        st=download_list[i][2], ed=download_list[i][3])
+            else:
+                result, msgs = download(download_list[i][0], download_list[i][1], cnt=i + 1)
+
+            # write logs
             if result:
                 # success
                 create_log(f"O {download_list[i][0]} / {msgs[0]} >> DOWNLOAD SUCCESS")
-                process_history += f"O {download_list[i][0]} / {msgs[0]} >> DOWNLOAD SUCCESS ({i+1}/{len(download_list)})\n"
+                process_history += f"O {download_list[i][0]} / {msgs[0]} >> DOWNLOAD SUCCESS ({i + 1}/{len(download_list)})\n"
                 success_flag = True
                 break
             else:
                 # failed
                 error_msgs = msgs
-                create_log(f"X {download_list[i][0]} / {msgs[0]} >> DOWNLOAD FAILED (attempt: {j+1})")
+                create_log(f"X {download_list[i][0]} / {msgs[0]} >> DOWNLOAD FAILED (attempt: {j + 1})")
 
         if not success_flag:
-            process_history += f"X {download_list[i][0]} / {error_msgs[0]} >> DOWNLOAD FAILED ({i+1}/{len(download_list)})\n"
+            process_history += f"X {download_list[i][0]} / {error_msgs[0]} >> DOWNLOAD FAILED ({i + 1}/{len(download_list)})\n"
+
+        break  # TODO remove
+
     create_log(process_history)
 
     # enable buttons
-    urlEntry["state"], outputEntry["state"], rButton1["state"], rButton2["state"], confirmButton["state"] = ["active"] * 5
+    urlEntry["state"], outputEntry["state"], rButton1["state"], rButton2["state"], confirmButton["state"], \
+        stEntry["state"], edEntry["state"], selectButton["state"] = ["normal"] * 8
+    stEntry.delete(0, tk.END)
+    edEntry.delete(0, tk.END)
     processingFlag = False
 
     # dialog
@@ -115,6 +159,10 @@ def start():
 
 def download(url, f, st=0, ed=-1, cnt=-1):
     global CURRENT_DIRECTORY
+    # download options
+    is_full = True
+    opts = {}
+
     # get metadata
     with YoutubeDL() as ydl:
         data = ydl.extract_info(url, download=False)
@@ -123,20 +171,40 @@ def download(url, f, st=0, ed=-1, cnt=-1):
         webpage_url = data['webpage_url']
         duration = data['duration']  # sec
 
-        text = ""
         if cnt < 0:
             text = ">>  META DATA  <<"
         else:
             text = f">>  META DATA (No.{cnt})  <<"
-        create_log(f"{text}\nURL: {webpage_url}\ntitle: {title}\nduration: {duration} sec\nthumbnail: {thumb_url}\n")
+
+        # calc clip duration
+        if st < ed:
+            if duration < ed: ed = duration
+            opts['download_ranges'] = lambda _, __: [{'start_time': st, 'end_time': ed}]  # TODO this is not correct.
+            is_full = False
+
+            text = f"{text}\nURL: {webpage_url}\ntitle: {title}\nlength: {duration} sec\n" \
+                   f"clip: {convert_to_timestamp(st)} - {convert_to_timestamp(ed)}\nformat: {f}\nthumbnail: {thumb_url}\n"
+        else:
+            text = f"{text}\nURL: {webpage_url}\ntitle: {title}\nlength: {duration} sec\n" \
+                   f"clip: ALL\nformat: {f}\nthumbnail: {thumb_url}\n"
+        create_log(text)
+
+    # display sync
+    outputFormat.set(f)
+    global stEntry, edEntry
+    stEntry["state"], edEntry["state"] = ["normal"] * 2
+    stEntry.delete(0, tk.END)
+    stEntry.insert(0, convert_to_timestamp(st))
+    edEntry.delete(0, tk.END)
+    edEntry.insert(0, convert_to_timestamp(ed))
+    stEntry["state"], edEntry["state"] = ["disable"] * 2
 
     # download mp3
     if f == "mp3":
-        opts = {
-            'format': 'm4a/bestaudio/best',
-            'outtmpl': f"{CURRENT_DIRECTORY}\\a.m4a",
-            'writethumbnail': "true",
-        }
+        opts['format'] = 'm4a/bestaudio/best'
+        opts['outtmpl'] = f"{CURRENT_DIRECTORY}\\a.m4a"
+        opts['writethumbnail'] = "true"
+
         with YoutubeDL(opts) as ydl:
             try:
                 ydl.download(url)
@@ -165,7 +233,12 @@ def download(url, f, st=0, ed=-1, cnt=-1):
         tags.save(v2_version=3)
 
         # file rename
-        output_file_name = re.sub(r"[\\/:*?'<>|]+\n", '', title) + ".mp3"
+        if is_full:
+            output_file_name = re.sub(r"[\\/:*?'<>|]+\n", '', title) + ".mp3"
+        else:
+            output_file_name = re.sub(r"[\\/:*?'<>|]+\n", '', title) + \
+                               f"{convert_to_timestamp(st, sp='.')}-{convert_to_timestamp(ed, sp='.')}" + ".mp3"
+
         if os.path.exists(f"{CURRENT_DIRECTORY}\\{output_file_name}") and output_file_name != "a.mp3":
             # remove old file
             os.remove(f"{CURRENT_DIRECTORY}\\{output_file_name}")
@@ -182,10 +255,9 @@ def download(url, f, st=0, ed=-1, cnt=-1):
 
     # download mp4
     else:
-        opts = {
-            'format': 'mp4/bestvideo/best',
-            'outtmpl': f"{CURRENT_DIRECTORY}\\v.mp4",
-        }
+        opts['format'] = 'bestvideo/best'
+        opts['outtmpl'] = f"{CURRENT_DIRECTORY}\\v.mp4"
+
         with YoutubeDL(opts) as ydl:
             try:
                 ydl.download(url)
@@ -194,7 +266,12 @@ def download(url, f, st=0, ed=-1, cnt=-1):
                     return False, ["Download failed!"]
 
             # file rename
-            output_file_name = re.sub(r"[\\/:*?'<>|]+\n", '', title) + ".mp4"
+            if is_full:
+                output_file_name = re.sub(r"[\\/:*?'<>|]+\n", '', title) + ".mp4"
+            else:
+                output_file_name = re.sub(r"[\\/:*?'<>|]+\n", '', title) + \
+                                   f"{convert_to_timestamp(st, sp='.')}-{convert_to_timestamp(ed, sp='.')}" + ".mp4"
+
             if os.path.exists(f"{CURRENT_DIRECTORY}\\{output_file_name}") and output_file_name != "v.mp4":
                 # remove old file
                 os.remove(f"{CURRENT_DIRECTORY}\\{output_file_name}")
@@ -242,10 +319,26 @@ def close():
     sys.exit(0)
 
 
+# check entry inputs express time
+def on_validate(text):
+    # 000:00:00 is max length
+    if len(text) >= 10: return False
+
+    try:
+        # create nums = [sec, min, hour]
+        nums = list(map(lambda a: int(a or 0), text.split(':')))[::-1]
+    except ValueError:
+        return False
+
+    # number of ':' must be less than 3.
+    if 3 < len(nums): return False
+    return True
+
+
 def create_log(msgs, is_display=True):
     # make timestamp
     timestamp = f"[{datetime.datetime.now().strftime('%H:%M:%S.')}" \
-                f"{str(math.floor(datetime.datetime.now().microsecond/10000)).zfill(2)}]"
+                f"{str(math.floor(datetime.datetime.now().microsecond / 10000)).zfill(2)}]"
 
     # disassemble text
     msgs = msgs.split('\n') + ['']
@@ -311,7 +404,9 @@ def main():
     outputEntry = ttk.Entry(output_frame, width=150)
     outputEntry.insert(0, config_txt)
     outputEntry.pack(side=tk.LEFT)
-    ttk.Button(output_frame, text='Browse', command=select).pack(side=tk.LEFT)
+    global selectButton
+    selectButton = ttk.Button(output_frame, text='Browse', command=select)
+    selectButton.pack(side=tk.LEFT)
 
     # radio button
     bottom_frame = ttk.Frame(root, padding=5, style="YTDL.TFrame")
@@ -322,6 +417,17 @@ def main():
     rButton1.pack(side=tk.LEFT)
     rButton2 = tk.Radiobutton(bottom_frame, text="mp4", variable=outputFormat, value="mp4")
     rButton2.pack(side=tk.LEFT)
+
+    # duration
+    global stEntry, edEntry
+    vc = root.register(on_validate)
+    ttk.Label(bottom_frame, text='Duration: ', font=normal_text_font, style='YTDL.TLabel').pack(side=tk.LEFT,
+                                                                                                padx=(30, 0))
+    stEntry = tk.Entry(bottom_frame, width=9, validate="key", validatecommand=(vc, "%P"))
+    stEntry.pack(side=tk.LEFT)
+    ttk.Label(bottom_frame, text='-', font=normal_text_font, style='YTDL.TLabel').pack(side=tk.LEFT)
+    edEntry = tk.Entry(bottom_frame, width=9, validate="key", validatecommand=(vc, "%P"))
+    edEntry.pack(side=tk.LEFT)
 
     # confirm button
     confirm_frame = ttk.Frame(root, padding=5, style='YTDL.TFrame')
