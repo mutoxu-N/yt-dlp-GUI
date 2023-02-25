@@ -12,9 +12,10 @@ Pythonを[ここ](https://www.python.org/downloads/)からダウンロードし�
 <br>
 
 ### 2. DOWNLOAD Software
-Download YTDL.zip from [here](https://github.com/mutoxu-N/yt-dlp-GUI/releases/tag/1.0) and unzip it.<br>
-YTDL.zip を[ここ](https://github.com/mutoxu-N/yt-dlp-GUI/releases/tag/1.0)からダウンロードして解凍して下さい。
-<br>
+Download Source code(zip) from [here](https://github.com/mutoxu-N/yt-dlp-GUI/releases/tag/v1.1) and unzip it.<br>
+ソースコードのZipファイルを[ここ](https://github.com/mutoxu-N/yt-dlp-GUI/releases/tag/v1.1)からダウンロードして解凍して下さい。
+![image](https://user-images.githubusercontent.com/55544957/221342354-944c1c70-9eda-4034-8465-57b1a2b2ad92.png)
+
 
 ### 3. Setup
 Run(click) "setup.bat".<br>
