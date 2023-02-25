@@ -23,6 +23,7 @@ MAX_LOG_COUNT = 10
 WIN_WIDTH = 1280
 WIN_HEIGHT = 720
 COLOR_BG = '#f2f6fc'
+DURATION_FLAG = False
 
 # variables
 root: Optional[tk.Tk] = None
@@ -78,7 +79,7 @@ def start():
         confirmButton["state"], stEntry["state"], edEntry["state"], selectButton["state"] = ["disable"] * 9
 
     # load download URLs
-    global outputFormat
+    global outputFormat, DURATION_FLAG
     download_list = []  # list of [url, format(mp3/mp4), start, end] or [url, format]
     if urlEntry.get() == "":
         # load download_list.txt
@@ -90,7 +91,8 @@ def start():
                         download_list.append([l[0], "mp3"])
                     elif len(l) == 2:
                         download_list.append(l)
-                    elif len(l) == 4:
+                    # TODO it doesn't work correctly, so disabled.
+                    elif len(l) == 4 and DURATION_FLAG:
                         download_list.append([l[0], l[1], convert_to_seconds(l[2]), convert_to_seconds(l[3])])
                     else:
                         download_list.append([None, ','.join(l)])
@@ -442,15 +444,23 @@ def main():
     rButton3.pack(side=tk.LEFT)
 
     # duration
-    global stEntry, edEntry
-    vc = root.register(on_validate)
-    ttk.Label(bottom_frame, text='Duration: ', font=normal_text_font, style='YTDL.TLabel').pack(side=tk.LEFT,
-                                                                                                padx=(30, 0))
-    stEntry = tk.Entry(bottom_frame, width=9, validate="key", validatecommand=(vc, "%P"))
-    stEntry.pack(side=tk.LEFT)
-    ttk.Label(bottom_frame, text='-', font=normal_text_font, style='YTDL.TLabel').pack(side=tk.LEFT)
-    edEntry = tk.Entry(bottom_frame, width=9, validate="key", validatecommand=(vc, "%P"))
-    edEntry.pack(side=tk.LEFT)
+    # TODO it doesn't work correctly, so disabled.
+    global stEntry, edEntry, DURATION_FLAG
+    if DURATION_FLAG:
+        vc = root.register(on_validate)
+        ttk.Label(bottom_frame, text='Duration: ', font=normal_text_font, style='YTDL.TLabel').pack(side=tk.LEFT,
+                                                                                                    padx=(30, 0))
+        stEntry = tk.Entry(bottom_frame, width=9, validate="key", validatecommand=(vc, "%P"))
+        stEntry.pack(side=tk.LEFT)
+        ttk.Label(bottom_frame, text='-', font=normal_text_font, style='YTDL.TLabel').pack(side=tk.LEFT)
+        edEntry = tk.Entry(bottom_frame, width=9, validate="key", validatecommand=(vc, "%P"))
+        edEntry.pack(side=tk.LEFT)
+    else:
+        vc = root.register(on_validate)
+        ttk.Label(bottom_frame, text='Duration: ', font=normal_text_font, style='YTDL.TLabel')
+        stEntry = tk.Entry(bottom_frame, width=9, validate="key", validatecommand=(vc, "%P"))
+        ttk.Label(bottom_frame, text='-', font=normal_text_font, style='YTDL.TLabel')
+        edEntry = tk.Entry(bottom_frame, width=9, validate="key", validatecommand=(vc, "%P"))
 
     # confirm button
     confirm_frame = ttk.Frame(root, padding=5, style='YTDL.TFrame')
