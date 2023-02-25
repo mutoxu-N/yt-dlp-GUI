@@ -211,7 +211,7 @@ def download(url, f, st=0, ed=-1, cnt=-1):
 
     # download audio
     opts['format'] = 'm4a/bestaudio/best'
-    opts['outtmpl'] = f"{CURRENT_DIRECTORY}\\a.m4a"
+    opts['outtmpl'] = f"{outputEntry.get()}\\a.m4a"
     opts['overwrite'] = "true"
     if f == "mp3":
         opts['writethumbnail'] = "true"
@@ -220,23 +220,23 @@ def download(url, f, st=0, ed=-1, cnt=-1):
         try:
             ydl.download(url)
         except DownloadError:
-            if not os.path.exists(f"{CURRENT_DIRECTORY}\\a.m4a"):
+            if not os.path.exists(f"{outputEntry.get()}\\a.m4a"):
                 return False, ["Download failed!"]
 
-            elif f == "mp3" and not os.path.exists(f"{CURRENT_DIRECTORY}\\a.webp"):
+            elif f == "mp3" and not os.path.exists(f"{outputEntry.get()}\\a.webp"):
                 return False, ["Download failed!"]
 
     # convert to jpg from webp
     if f == "mp3":
-        Image.open(f"{CURRENT_DIRECTORY}\\a.webp").convert('RGB').save(f"{CURRENT_DIRECTORY}\\t.jpg", 'jpeg')
+        Image.open(f"{outputEntry.get()}\\a.webp").convert('RGB').save(f"{outputEntry.get()}\\t.jpg", 'jpeg')
 
         # convert to mp3 from m4a
-        stream = ffmpeg.input(f"{CURRENT_DIRECTORY}\\a.m4a")
-        ffmpeg.run(ffmpeg.output(stream, f"{CURRENT_DIRECTORY}\\a.mp3"), overwrite_output=True)
+        stream = ffmpeg.input(f"{outputEntry.get()}\\a.m4a")
+        ffmpeg.run(ffmpeg.output(stream, f"{outputEntry.get()}\\a.mp3"), overwrite_output=True)
 
         # set thumbnail to mp3
-        tags = ID3(f"{CURRENT_DIRECTORY}\\a.mp3")
-        with open(f"{CURRENT_DIRECTORY}\\t.jpg", 'rb') as album_art:
+        tags = ID3(f"{outputEntry.get()}\\a.mp3")
+        with open(f"{outputEntry.get()}\\t.jpg", 'rb') as album_art:
             tags.add(
                 APIC(
                     mime="image/jpg",
@@ -253,37 +253,37 @@ def download(url, f, st=0, ed=-1, cnt=-1):
             output_file_name = re.sub(r"[\\/:*?'<>|]+\n", '', title) + \
                                f"{convert_to_timestamp(st, sp='.')}-{convert_to_timestamp(ed, sp='.')}" + ".mp3"
 
-        if os.path.exists(f"{CURRENT_DIRECTORY}\\{output_file_name}") and output_file_name != "a.mp3":
+        if os.path.exists(f"{outputEntry.get()}\\{output_file_name}") and output_file_name != "a.mp3":
             # remove old file
-            os.remove(f"{CURRENT_DIRECTORY}\\{output_file_name}")
+            os.remove(f"{outputEntry.get()}\\{output_file_name}")
 
         if output_file_name != "a.mp3":
             # rename if needed
-            os.rename(f"{CURRENT_DIRECTORY}\\a.mp3",
-                      f"{CURRENT_DIRECTORY}\\{output_file_name}")
+            os.rename(f"{outputEntry.get()}\\a.mp3",
+                      f"{outputEntry.get()}\\{output_file_name}")
 
         # delete tmp files
-        if os.path.exists(f"{CURRENT_DIRECTORY}\\a.m4a"): os.remove(f"{CURRENT_DIRECTORY}\\a.m4a")
-        if os.path.exists(f"{CURRENT_DIRECTORY}\\a.webp"): os.remove(f"{CURRENT_DIRECTORY}\\a.webp")
-        if os.path.exists(f"{CURRENT_DIRECTORY}\\t.jpg"): os.remove(f"{CURRENT_DIRECTORY}\\t.jpg")
+        if os.path.exists(f"{outputEntry.get()}\\a.m4a"): os.remove(f"{outputEntry.get()}\\a.m4a")
+        if os.path.exists(f"{outputEntry.get()}\\a.webp"): os.remove(f"{outputEntry.get()}\\a.webp")
+        if os.path.exists(f"{outputEntry.get()}\\t.jpg"): os.remove(f"{outputEntry.get()}\\t.jpg")
 
     # download mp4 or webm
     if f != "mp3":
         opts['format'] = 'webm/bestvideo/best'
-        opts['outtmpl'] = f"{CURRENT_DIRECTORY}\\v.webm"
+        opts['outtmpl'] = f"{outputEntry.get()}\\v.webm"
         opts['overwrite'] = "true"
 
         with YoutubeDL(opts) as ydl:
             try:
                 ydl.download(url)
             except DownloadError:
-                if not os.path.exists(f"{CURRENT_DIRECTORY}\\v.webm"):
+                if not os.path.exists(f"{outputEntry.get()}\\v.webm"):
                     return False, ["Download failed!"]
 
         if f == "mp4":
             # convert to mp4 from webm and combine audio
-            ffmpeg.output(ffmpeg.input(f"{CURRENT_DIRECTORY}\\v.webm"), f"{CURRENT_DIRECTORY}\\v.mp4") \
-                .global_args('-i', f"{CURRENT_DIRECTORY}\\a.m4a").global_args('-vcodec', 'copy')\
+            ffmpeg.output(ffmpeg.input(f"{outputEntry.get()}\\v.webm"), f"{outputEntry.get()}\\v.mp4") \
+                .global_args('-i', f"{outputEntry.get()}\\a.m4a").global_args('-vcodec', 'copy')\
                 .global_args('-map', '0:v').global_args('-map', '1:a').run(overwrite_output=True)
 
         # file rename
@@ -294,22 +294,22 @@ def download(url, f, st=0, ed=-1, cnt=-1):
                                f"{convert_to_timestamp(st, sp='.')}-{convert_to_timestamp(ed, sp='.')}" + f".{f}"
 
         # remove old file
-        if os.path.exists(f"{CURRENT_DIRECTORY}\\{output_file_name}") and output_file_name != f"c.{f}":
-            os.remove(f"{CURRENT_DIRECTORY}\\{output_file_name}")
+        if os.path.exists(f"{outputEntry.get()}\\{output_file_name}") and output_file_name != f"c.{f}":
+            os.remove(f"{outputEntry.get()}\\{output_file_name}")
 
         # rename if needed
         if output_file_name != f"v.{f}":
-            os.rename(f"{CURRENT_DIRECTORY}\\v.{f}",
-                      f"{CURRENT_DIRECTORY}\\{output_file_name}")
+            os.rename(f"{outputEntry.get()}\\v.{f}",
+                      f"{outputEntry.get()}\\{output_file_name}")
         if output_file_name != f"a.m4a" and f == "webm":
-            os.rename(f"{CURRENT_DIRECTORY}\\a.m4a",
-                      f"{CURRENT_DIRECTORY}\\{output_file_name[:-4]}.m4a")
+            os.rename(f"{outputEntry.get()}\\a.m4a",
+                      f"{outputEntry.get()}\\{output_file_name[:-4]}.m4a")
 
         # delete tmp file
-        if os.path.exists(f"{CURRENT_DIRECTORY}\\a.m4a"): os.remove(f"{CURRENT_DIRECTORY}\\a.m4a")
-        if os.path.exists(f"{CURRENT_DIRECTORY}\\v.{f}"): os.remove(f"{CURRENT_DIRECTORY}\\v.{f}")
-        if os.path.exists(f"{CURRENT_DIRECTORY}\\v.webm") and output_file_name != "v.webm":
-            os.remove(f"{CURRENT_DIRECTORY}\\v.webm")
+        if os.path.exists(f"{outputEntry.get()}\\a.m4a"): os.remove(f"{outputEntry.get()}\\a.m4a")
+        if os.path.exists(f"{outputEntry.get()}\\v.{f}"): os.remove(f"{outputEntry.get()}\\v.{f}")
+        if os.path.exists(f"{outputEntry.get()}\\v.webm") and output_file_name != "v.webm":
+            os.remove(f"{outputEntry.get()}\\v.webm")
 
     return True, [title]
 
