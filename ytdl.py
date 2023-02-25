@@ -383,13 +383,6 @@ def create_log(msgs, is_display=True):
             consoleText['state'] = 'disable'
 
 
-# get resource for Pyinstaller
-def resource_path(relative_path):
-    if hasattr(sys, '_MEIPASS'):
-        return sys._MEIPASS + '\\' + relative_path
-    return os.path.join(os.path.abspath('.'), relative_path)
-
-
 def main():
     # get config
     config_txt = CURRENT_DIRECTORY
@@ -481,7 +474,7 @@ def main():
     consoleText.pack()
 
     # icon
-    root.wm_iconbitmap(resource_path('image\\icon.ico'))
+    root.wm_iconbitmap('image\\icon.ico')
 
     # Start
     root.protocol('WM_DELETE_WINDOW', close)
