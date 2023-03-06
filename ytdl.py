@@ -126,11 +126,14 @@ def start():
                 download_list[i][1] = "mp3"
 
             # run download()
-            if len(download_list[i]) == 4:
-                result, msgs = download(download_list[i][0], download_list[i][1], cnt=i + 1,
-                                        st=download_list[i][2], ed=download_list[i][3])
-            else:
-                result, msgs = download(download_list[i][0], download_list[i][1], cnt=i + 1)
+            try:
+                if len(download_list[i]) == 4:
+                    result, msgs = download(download_list[i][0], download_list[i][1], cnt=i + 1,
+                                            st=download_list[i][2], ed=download_list[i][3])
+                else:
+                    result, msgs = download(download_list[i][0], download_list[i][1], cnt=i + 1)
+            except Exception as e:
+                result, msgs = False, [str(e)]
 
             # write logs
             if result:
