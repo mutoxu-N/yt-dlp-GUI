@@ -248,9 +248,9 @@ def download(url, f, st=0, ed=-1, cnt=-1):
 
         # file rename
         if is_full:
-            output_file_name = re.sub(r"[\\/:*?'<>|]+\n", '', title) + ".mp3"
+            output_file_name = re.sub(r'[\\/:*?"<>|]+', ' ', title) + ".mp3"
         else:
-            output_file_name = re.sub(r"[\\/:*?'<>|]+\n", '', title) + \
+            output_file_name = re.sub(r'[\\/:*?"<>|]+', ' ', title) + \
                                f"{convert_to_timestamp(st, sp='.')}-{convert_to_timestamp(ed, sp='.')}" + ".mp3"
 
         if os.path.exists(f"{outputEntry.get()}\\{output_file_name}") and output_file_name != "a.mp3":
