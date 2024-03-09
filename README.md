@@ -3,8 +3,8 @@ This software is GUI display for yt-dlp and provides multiple downloads.
 このソフトは yt-dlp にGUIと一括処理を提供します。
 
 # Installation
-REQUIREMENTS: Python 3.10 (or newer)<br>
-必要事項: Python 3.10 以上
+REQUIREMENTS: Python 3.11<br>
+必要事項: Python 3.11
 
 ### 1. DOWNLOAD Python
 Download and install Python from [here](https://www.python.org/downloads/).<br>
