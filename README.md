@@ -17,8 +17,11 @@ Download Source code(zip) from [here](https://github.com/mutoxu-N/yt-dlp-GUI/rel
 ![image](https://user-images.githubusercontent.com/55544957/221342354-944c1c70-9eda-4034-8465-57b1a2b2ad92.png)
 
 ### 3. Install FFmpeg
-Download FFmpeg from [here](https://ffmpeg.org/download.html). Unzip it and copy exes in the "fin" directory to yt-dlp folder.
-解答後のフォルダ内に[FFmpeg](https://ffmpeg.org/download.html)をダウンロードしてください。 ファイルを解凍し, "bin"フォルダ内のexeファイルを"start.bat"と同じ場所に配置してください。
+Download FFmpeg from [here](https://ffmpeg.org/download.html). Unzip it and copy exes in the "fin" directory to yt-dlp folder.<br>
+解凍後のフォルダ内に[FFmpeg](https://ffmpeg.org/download.html)をダウンロードしてください。 ファイルを解凍し, "bin"フォルダ内のexeファイルを"start.bat"と同じ場所に配置してください。
+
+Example Image below. 以下のようにしてください。<br>
+![image](https://github.com/mutoxu-N/yt-dlp-GUI/assets/55544957/468cd041-6ff6-4383-8b46-98bfca87197f)
 
 ### 4. Setup
 Run(click) "setup.bat".<br>
