@@ -7,8 +7,8 @@ REQUIREMENTS: Python 3.11<br>
 必要事項: Python 3.11
 
 ### 1. DOWNLOAD Python
-Download and install Python from [here](https://www.python.org/downloads/).<br>
-Pythonを[ここ](https://www.python.org/downloads/)からダウンロードしてインストールしてください。
+Download and install Python3.11 from [here](https://www.python.org/downloads/).<br>
+Python3.11を[ここ](https://www.python.org/downloads/)からダウンロードしてインストールしてください。
 <br>
 
 ### 2. DOWNLOAD Software
@@ -16,12 +16,15 @@ Download Source code(zip) from [here](https://github.com/mutoxu-N/yt-dlp-GUI/rel
 ソースコードのZipファイルを[ここ](https://github.com/mutoxu-N/yt-dlp-GUI/releases)からダウンロードして解凍して下さい。
 ![image](https://user-images.githubusercontent.com/55544957/221342354-944c1c70-9eda-4034-8465-57b1a2b2ad92.png)
 
+### 3. Install FFmpeg
+Download FFmpeg from [here](https://ffmpeg.org/download.html). Unzip it and copy exes in the "fin" directory to yt-dlp folder.
+解答後のフォルダ内に[FFmpeg](https://ffmpeg.org/download.html)をダウンロードしてください。 ファイルを解凍し, "bin"フォルダ内のexeファイルを"start.bat"と同じ場所に配置してください。
 
-### 3. Setup
+### 4. Setup
 Run(click) "setup.bat".<br>
 "setup.bat" を実行して下さい。
 
-### 4. Start
+### 5. Start
 To start the software, run(click) "start.bat".<br>
 "start.bat" を実行して、ソフトを起動します。
 

@@ -409,7 +409,7 @@ def main():
     root.title(APP_NAME)
 
     # style
-    normal_text_font = tkFont.Font(family='Rounded-L M+ 1c heavy', size=15)
+    normal_text_font = tkFont.Font(family='Mgen+ 1c medium', size=15)
     s = ttk.Style()
     s.configure('YTDL.TFrame', background=COLOR_BG)
     s.configure('YTDL.TLabel', background=COLOR_BG)
