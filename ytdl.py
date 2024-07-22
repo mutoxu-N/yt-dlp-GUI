@@ -12,7 +12,7 @@ import ffmpeg
 import re
 import threading
 from PIL import Image
-from mutagen.id3 import ID3, APIC
+from mutagen.id3 import ID3, APIC, TIT2
 from yt_dlp import YoutubeDL, DownloadError
 from typing import Optional
 
@@ -247,6 +247,7 @@ def download(url, f, st=0, ed=-1, cnt=-1):
                     data=album_art.read()
                 )
             )
+        tags.add(TIT2(encoding=3, text=title))
         tags.save(v2_version=3)
 
         # file rename
