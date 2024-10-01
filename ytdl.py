@@ -145,6 +145,10 @@ def start():
             else:
                 # failed
                 error_msgs = msgs
+                print(msgs[0].find("This video is only available to Music Premium members"))
+                if msgs[0].find("This video is only available to Music Premium members"):
+                    create_log(f"X {download_list[i][0]} / {msgs[0]} >> DOWNLOAD FAILED")
+                    break
                 create_log(f"X {download_list[i][0]} / {msgs[0]} >> DOWNLOAD FAILED (attempt: {j + 1})")
 
         if not success_flag:
