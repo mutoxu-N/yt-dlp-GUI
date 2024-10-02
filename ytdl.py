@@ -31,11 +31,15 @@ processingFlag = False
 consoleLogText = ''
 urlEntry: Optional[tk.Entry] = None
 outputEntry: Optional[tk.Entry] = None
+browseOutDirButton: Optional[tk.Button] = None
 outputFormat: Optional[tk.StringVar] = None
-selectButton: Optional[tk.Button] = None
-rButton1: Optional[tk.Radiobutton] = None
-rButton2: Optional[tk.Radiobutton] = None
-rButton3: Optional[tk.Radiobutton] = None
+rButtonMP3: Optional[tk.Radiobutton] = None
+rButtonMP4: Optional[tk.Radiobutton] = None
+rButtonSplit: Optional[tk.Radiobutton] = None
+cookieCheckBoxValue: Optional[tk.BooleanVar] = None
+cookieCheckBox: Optional[tk.Checkbutton] = None
+cookieEntry: Optional[tk.Entry] = None
+browseCookieButton: Optional[tk.Button] = None
 stEntry: Optional[tk.Entry] = None
 edEntry: Optional[tk.Entry] = None
 consoleText: Optional[tk.Text] = None
@@ -74,9 +78,10 @@ def start():
         processingFlag = True
 
     # disable buttons
-    global confirmButton, rButton1, rButton2, rButton3, urlEntry, outputEntry, stEntry, edEntry
-    urlEntry["state"], outputEntry["state"], rButton1["state"], rButton2["state"], rButton3["state"], \
-        confirmButton["state"], stEntry["state"], edEntry["state"], selectButton["state"] = ["disable"] * 9
+    global confirmButton, rButtonMP3, rButtonMP4, rButtonSplit, urlEntry, outputEntry, stEntry, edEntry, cookieCheckBox, cookieEntry, browseCookieButton
+    urlEntry["state"], outputEntry["state"], rButtonMP3["state"], rButtonMP4["state"], rButtonSplit["state"], \
+        confirmButton["state"], stEntry["state"], edEntry["state"], browseOutDirButton["state"], \
+        cookieCheckBox["state"], cookieEntry["state"], browseCookieButton["state"],  = ["disable"] * 12
 
     # load download URLs
     global outputFormat, DURATION_FLAG
@@ -157,8 +162,11 @@ def start():
     create_log(process_history)
 
     # enable buttons
-    urlEntry["state"], outputEntry["state"], rButton1["state"], rButton2["state"], rButton3["state"], \
-        confirmButton["state"], stEntry["state"], edEntry["state"], selectButton["state"] = ["normal"] * 9
+    urlEntry["state"], outputEntry["state"], rButtonMP3["state"], rButtonMP4["state"], rButtonSplit["state"], \
+        confirmButton["state"], stEntry["state"], edEntry["state"], browseOutDirButton["state"], cookieCheckBox["state"] = ["normal"] * 10
+    global cookieCheckBoxValue
+    if cookieCheckBoxValue.get():
+        cookieEntry["state"], browseCookieButton["state"] = ["normal"]*2
     stEntry.delete(0, tk.END)
     edEntry.delete(0, tk.END)
     processingFlag = False
@@ -172,9 +180,13 @@ def download(url, f, st=0, ed=-1, cnt=-1):
     # download options
     is_full = True
     opts = {}
+    global cookieCheckBoxValue, cookieEntry
+    if cookieCheckBoxValue.get():
+        opts["cookiefile"] = cookieEntry.get().replace("\n", "")
+
 
     # get metadata
-    with YoutubeDL() as ydl:
+    with YoutubeDL(opts) as ydl:
         data = ydl.extract_info(url, download=False)
         title = data['title']
         thumb_url = data['thumbnail']
@@ -322,11 +334,19 @@ def download(url, f, st=0, ed=-1, cnt=-1):
     return True, [title]
 
 
-def select():
+def select_output_dir():
     global outputEntry
-    output_file_path = tkFDialog.askdirectory()
-    outputEntry.delete(0, tk.END)
-    outputEntry.insert(0, output_file_path)
+    output_file_path = tkFDialog.askdirectory().replace("\n", "")
+    if output_file_path != "":
+        outputEntry.delete(0, tk.END)
+        outputEntry.insert(0, output_file_path)
+
+def select_cookie_file():
+    global cookieEntry
+    cookie_file_path = tkFDialog.askopenfilename().replace("\n", "")
+    if cookie_file_path != "":
+        cookieEntry.delete(0, tk.END)
+        cookieEntry.insert(0, cookie_file_path)
 
 
 def close():
@@ -340,10 +360,12 @@ def close():
     now = datetime.datetime.now()
     # config
     with open(CURRENT_DIRECTORY + '/config.cfg', encoding='UTF-8', mode='w') as f:
-        global outputEntry
-        if isinstance(outputEntry, tk.Entry):
-            f.write(outputEntry.get())
-            f.close()
+        global outputEntry, cookieEntry, cookieCheckBoxValue
+        out = ["\n"]*3
+        if isinstance(outputEntry, tk.Entry): out[0] = outputEntry.get().replace("\n", "") + "\n"
+        if isinstance(cookieEntry, tk.Entry): out[1] = cookieEntry.get().replace("\n", "") + "\n"
+        if isinstance(cookieCheckBoxValue, tk.BooleanVar): out[2] = str(cookieCheckBoxValue.get()) + "\n"
+        f.writelines(out)
 
     # log
     if not os.path.isdir(CURRENT_DIRECTORY + '/log'):
@@ -395,18 +417,20 @@ def create_log(msgs, is_display=True):
 
 def main():
     # get config
-    config_txt = CURRENT_DIRECTORY
+    output_dir = CURRENT_DIRECTORY
+    use_cookie = True
+    cookie_filepath = ""
     if os.path.isfile(CURRENT_DIRECTORY + '/config.cfg'):
         with open(CURRENT_DIRECTORY + '/config.cfg', encoding='UTF-8', mode='r') as f:
-            tmp = f.readline()
-            if tmp != "": config_txt = tmp
+            lines = f.readlines()
+            if len(lines) > 0 and lines[0] not in ["", "\n"]: output_dir = lines[0]
+            if len(lines) > 1 and lines[1] not in ["", "\n"]: cookie_filepath = lines[1]
+            if len(lines) > 2 and lines[2] not in ["", "\n"]: use_cookie = lines[2].replace("\n", "") == True
             f.close()
 
     # create window
-    global root, outputFormat
+    global root
     root = tk.Tk()
-    outputFormat = tk.StringVar(value="mp3")
-
     # window settings
     root.resizable(width=False, height=False)
     root.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}")
@@ -418,13 +442,16 @@ def main():
     s = ttk.Style()
     s.configure('YTDL.TFrame', background=COLOR_BG)
     s.configure('YTDL.TLabel', background=COLOR_BG)
+    s.configure('YTDL.TRadioButton', background=COLOR_BG)
+    s.configure('YTDL.TCheckBox', background=COLOR_BG)
+    s.configure('YTDL.TEntry', background=COLOR_BG)
 
     # url
     url_frame = ttk.Frame(root, padding=0, style='YTDL.TFrame')
     url_frame.pack(pady=15)
     ttk.Label(url_frame, text='URL: ', font=normal_text_font, style='YTDL.TLabel').pack(side=tk.LEFT)
     global urlEntry
-    urlEntry = ttk.Entry(url_frame, width=150)
+    urlEntry = ttk.Entry(url_frame, width=150, style="YTDL.TEntry")
     urlEntry.pack(side=tk.LEFT)
 
     # output config
@@ -432,24 +459,52 @@ def main():
     output_frame.pack()
     ttk.Label(output_frame, text='Output Folder: ', font=normal_text_font, style='YTDL.TLabel').pack(side=tk.LEFT)
     global outputEntry
-    outputEntry = ttk.Entry(output_frame, width=150)
-    outputEntry.insert(0, config_txt)
+    outputEntry = ttk.Entry(output_frame, width=150, style="YTDL.TEntry")
+    outputEntry.insert(0, output_dir)
     outputEntry.pack(side=tk.LEFT)
-    global selectButton
-    selectButton = ttk.Button(output_frame, text='Browse', command=select)
-    selectButton.pack(side=tk.LEFT)
+    global browseOutDirButton
+    browseOutDirButton = ttk.Button(output_frame, text='Browse', command=select_output_dir)
+    browseOutDirButton.pack(side=tk.LEFT)
 
+    # option 
+    options_frame = ttk.Frame(root, padding=5, style="YTDL.TFrame")
+    options_frame.pack()
     # radio button
-    bottom_frame = ttk.Frame(root, padding=5, style="YTDL.TFrame")
-    bottom_frame.pack()
+    bottom_frame = ttk.Frame(options_frame, padding=5, style="YTDL.TFrame")
+    bottom_frame.pack(side=tk.LEFT)
     ttk.Label(bottom_frame, text='Format: ', font=normal_text_font, style='YTDL.TLabel').pack(side=tk.LEFT)
-    global rButton1, rButton2, rButton3
-    rButton1 = tk.Radiobutton(bottom_frame, text="mp3", variable=outputFormat, value="mp3")
-    rButton1.pack(side=tk.LEFT)
-    rButton2 = tk.Radiobutton(bottom_frame, text="mp4", variable=outputFormat, value="mp4")
-    rButton2.pack(side=tk.LEFT)
-    rButton3 = tk.Radiobutton(bottom_frame, text="webm&m4a", variable=outputFormat, value="webm")
-    rButton3.pack(side=tk.LEFT)
+    global rButtonMP3, rButtonMP4, rButtonSplit, outputFormat
+    outputFormat = tk.StringVar(value="mp3")
+    rButtonMP3 = tk.Radiobutton(bottom_frame, text="mp3", variable=outputFormat, value="mp3", bg=COLOR_BG)
+    rButtonMP3.pack(side=tk.LEFT)
+    rButtonMP4 = tk.Radiobutton(bottom_frame, text="mp4", variable=outputFormat, value="mp4", bg=COLOR_BG)
+    rButtonMP4.pack(side=tk.LEFT)
+    rButtonSplit = tk.Radiobutton(bottom_frame, text="webm&m4a", variable=outputFormat, value="webm", bg=COLOR_BG)
+    rButtonSplit.pack(side=tk.LEFT)
+
+    # Auth
+    cookie_frame = ttk.Frame(options_frame, padding=5, style='YTDL.TFrame')
+    cookie_frame.pack(side=tk.RIGHT)
+    ttk.Label(cookie_frame, text="Cookie: ", font=normal_text_font, style='YTDL.TLabel').pack(side=tk.LEFT)
+    global cookieEntry, cookieCheckBox, cookieCheckBoxValue, browseCookieButton
+    def on_cookie_checkbox_changed():
+        if isinstance(cookieCheckBoxValue, tk.BooleanVar) and cookieCheckBoxValue.get():
+            cookieEntry.config(state="normal")
+            browseCookieButton.config(state="normal")
+        else:
+            cookieEntry.config(state="disable")
+            browseCookieButton.config(state="disable")
+    cookieCheckBoxValue = tk.BooleanVar(value=use_cookie)
+    cookieCheckBox = tk.Checkbutton(cookie_frame, variable=cookieCheckBoxValue, command=on_cookie_checkbox_changed, bg=COLOR_BG)
+    cookieCheckBox.pack(side=tk.LEFT)
+    cookieEntry = ttk.Entry(cookie_frame, width=50, style="YTDL.TEntry")
+    cookieEntry.insert(0, cookie_filepath)
+    cookieEntry.config(state="normal" if use_cookie else "disable")
+    cookieEntry.pack(side=tk.LEFT)
+    browseCookieButton = ttk.Button(cookie_frame, text="Browse", command=select_cookie_file)
+    browseCookieButton.config(state="normal" if use_cookie else "disable")
+    browseCookieButton.pack(side=tk.LEFT)
+
 
     # duration
     # TODO it doesn't work correctly, so disabled.

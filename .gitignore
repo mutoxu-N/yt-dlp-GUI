@@ -2,3 +2,4 @@ ytdl
 log
 *.cfg
 *.exe
+*cookie*
