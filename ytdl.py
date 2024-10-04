@@ -88,8 +88,6 @@ def start():
     download_list = []  # list of [url, format(mp3/mp4), start, end] or [url, format]
     if urlEntry.get() == "":
         # load download_list.txt
-        print(f"{outputEntry.get()}\\download_list.txt")
-        print(os.path.isfile(f"{outputEntry.get()}\\download_list.txt"))
         if os.path.isfile(f"{outputEntry.get()}\\download_list.txt"):
             with open(f"{outputEntry.get()}\\download_list.txt", encoding="UTF-8", mode="r") as f:
                 lines = list(map(lambda a: a.split(','), f.readlines()))
