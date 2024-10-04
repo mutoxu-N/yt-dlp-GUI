@@ -88,6 +88,8 @@ def start():
     download_list = []  # list of [url, format(mp3/mp4), start, end] or [url, format]
     if urlEntry.get() == "":
         # load download_list.txt
+        print(f"{outputEntry.get()}\\download_list.txt")
+        print(os.path.isfile(f"{outputEntry.get()}\\download_list.txt"))
         if os.path.isfile(f"{outputEntry.get()}\\download_list.txt"):
             with open(f"{outputEntry.get()}\\download_list.txt", encoding="UTF-8", mode="r") as f:
                 lines = list(map(lambda a: a.split(','), f.readlines()))
@@ -423,8 +425,8 @@ def main():
     if os.path.isfile(CURRENT_DIRECTORY + '/config.cfg'):
         with open(CURRENT_DIRECTORY + '/config.cfg', encoding='UTF-8', mode='r') as f:
             lines = f.readlines()
-            if len(lines) > 0 and lines[0] not in ["", "\n"]: output_dir = lines[0]
-            if len(lines) > 1 and lines[1] not in ["", "\n"]: cookie_filepath = lines[1]
+            if len(lines) > 0 and lines[0] not in ["", "\n"]: output_dir = lines[0].replace("\n", "")
+            if len(lines) > 1 and lines[1] not in ["", "\n"]: cookie_filepath = lines[1].replace("\n", "")
             if len(lines) > 2 and lines[2] not in ["", "\n"]: use_cookie = lines[2].replace("\n", "") == True
             f.close()
 
